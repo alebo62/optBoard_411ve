@@ -22,6 +22,7 @@ System CLock 64 MHz
 #include "tim.h"
 #include "gpio.h"
 #include "stdio.h"
+//#include "i2c.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /*
@@ -68,6 +69,8 @@ const U16 MAX_LEN_BUF = 322;
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+extern I2C_HandleTypeDef hi2c;
+extern void I2Cx_Init(void);
 extern volatile uint16_t flag;
 extern volatile uint16_t rx_buf[8];
 extern void conn_process(void);
@@ -166,15 +169,18 @@ int counter = 0;
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 	MX_SPI1_Init();
 	__HAL_SPI_ENABLE_IT(&hspi1, SPI_IT_RXNE | SPI_IT_TXE );
+	//__HAL_I2C_ENABLE_IT(&hi2c, I2C_IT_EVT);
 	memcpy((char*)ssc_txFrame_buf,(char*)idle_frame_tx_buf, 16);
+	
+	I2Cx_Init();
   /* USER CODE BEGIN 2 */
 	
 	//accel_demo();
-	if(BSP_ACCELERO_Init() != HAL_OK)
-  {
-    Error_Handler();
-  }
-	accel_demo();
+//	if(BSP_ACCELERO_Init() != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+	//accel_demo();
   /* USER CODE END 2 */
 
   /* Infinite loop */
