@@ -46,7 +46,7 @@ void I2Cx_MspInit(I2C_HandleTypeDef *hi2c)
   /* I2Cx SD1 & SCK pin configuration */
   GPIO_InitStructure.Pin = GPIO_PIN_7   | GPIO_PIN_8  ;
   GPIO_InitStructure.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStructure.Pull = GPIO_NOPULL;
+  GPIO_InitStructure.Pull = GPIO_PULLUP;
   GPIO_InitStructure.Speed = GPIO_SPEED_FAST;
   GPIO_InitStructure.Alternate = GPIO_AF4_I2C1;
   
@@ -73,7 +73,7 @@ void I2Cx_Init(void)
   {
     hi2c.Instance = I2C1;
     hi2c.Init.OwnAddress1 =  0;
-    hi2c.Init.ClockSpeed = 200000;
+    hi2c.Init.ClockSpeed = 100000;
     hi2c.Init.DutyCycle = I2C_DUTYCYCLE_2;
     hi2c.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
     hi2c.Init.DualAddressMode = I2C_DUALADDRESS_DISABLED;
@@ -88,7 +88,9 @@ void I2Cx_Init(void)
 			Error_Handler();
 		}
 		//__HAL_I2C_DISABLE_IT(&hi2c, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
-		MPU6050_Init(&hi2c);// test
+		
+		//MPU6050_Init(&hi2c);// test
+		
 		//MPU6050_Calibrate();
 		//printf("Acc: %d %d %d\n", fAX_Cal, fAY_Cal, fAZ_Cal);
 		//printf("Gyro: %d %d %d\n", fGX_Cal, fGY_Cal, fGZ_Cal);

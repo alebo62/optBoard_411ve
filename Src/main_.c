@@ -187,7 +187,9 @@ int main(void)
    //__HAL_I2C_ENABLE_IT(&hi2c, I2C_IT_EVT);
    memcpy((char *)ssc_txFrame_buf, (char *)idle_frame_tx_buf, 16);
    I2Cx_Init();
-
+	 
+	 configureCCS811();
+		while(1);
    while (1)
    {
       if (flag)
