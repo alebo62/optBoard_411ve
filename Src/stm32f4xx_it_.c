@@ -34,6 +34,7 @@
 /* USER CODE BEGIN PD */
 extern TIM_HandleTypeDef htim1; 
 extern TIM_HandleTypeDef htim2; 
+extern I2C_HandleTypeDef hi2c;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -159,6 +160,17 @@ void EXTI1_IRQHandler(void)
 			htim1.Instance->CR1 |= TIM_CR1_CEN;
 		}			
 		temp++;
+}
+
+void I2C1_EV_IRQHandler(void)
+{
+  /* USER CODE BEGIN I2C1_EV_IRQn 0 */
+
+  /* USER CODE END I2C1_EV_IRQn 0 */
+  HAL_I2C_EV_IRQHandler(&hi2c);
+  /* USER CODE BEGIN I2C1_EV_IRQn 1 */
+
+  /* USER CODE END I2C1_EV_IRQn 1 */
 }
 /* USER CODE END EV */
 

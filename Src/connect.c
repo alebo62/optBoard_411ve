@@ -1,4 +1,5 @@
 #include "messages.h"
+#include "gpio.h"
 #define NO_MSG_RCV 0
 #define IS_MSG_RCV 1
 #define CTRL_MSG   1
@@ -189,8 +190,10 @@ void conn_process(void)
         break;
 
       case 0x0C:
-        if(conn_establish_state == 12)
+        if(conn_establish_state == 12){
           conn_establish_state = 13; // еще надо прин€ть ќхќ¬
+					GPIOA->ODR &= ~0x200;
+					}
         break;
 
       default:
