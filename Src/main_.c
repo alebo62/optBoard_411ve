@@ -186,21 +186,8 @@ int main(void)
    __HAL_SPI_ENABLE_IT(&hspi1, SPI_IT_RXNE | SPI_IT_TXE);
    //__HAL_I2C_ENABLE_IT(&hi2c, I2C_IT_EVT);
    memcpy((char *)ssc_txFrame_buf, (char *)idle_frame_tx_buf, 16);
-   //printf("hello");
    I2Cx_Init();
-   //while(1);
-   /* USER CODE BEGIN 2 */
 
-   //accel_demo();
-   //	if(BSP_ACCELERO_Init() != HAL_OK)
-   //  {
-   //    Error_Handler();
-   //  }
-   //accel_demo();
-   /* USER CODE END 2 */
-
-   /* Infinite loop */
-   /* USER CODE BEGIN WHILE */
    while (1)
    {
       if (flag)
@@ -235,17 +222,26 @@ int main(void)
                      break;
                   }
                }
-               //else 
-							 //if (ssc_rcv_buf[3] == 0x5A5A)
-               //{
-								else if (need_ack && idle_frame_tx)
-								{
-										need_ack = 0;
-										ssc_tx_msg_length = 10;
-										ssc_tx_msg_counter = 0;
-										memcpy((U8 *)ssc_txData_buf, (U8 *)XNL_DATA_MSG_ACK, 20);
-										idle_frame_tx = 0; //  ssc transmit
-								}               
+               else
+               {
+                  if (need_ack && idle_frame_tx)
+                  {
+                     need_ack = 0;
+                     ssc_tx_msg_length = 10;
+                     ssc_tx_msg_counter = 0;
+                     memcpy((U8 *)ssc_txData_buf, (U8 *)XNL_DATA_MSG_ACK, 20);
+                     idle_frame_tx = 0; //  ssc transmit
+                  }
+                  if (need_reply && idle_frame_tx)
+                  {
+                     need_reply = 0;
+                     get_check_sum(XNL_DATA_MSG_REPLY);
+                     ssc_tx_msg_length = 14;
+                     ssc_tx_msg_counter = 0;
+                     memcpy((U8 *)ssc_txData_buf, (U8 *)XNL_DATA_MSG_REPLY, 28);
+                     idle_frame_tx = 0; //  ssc transmit
+                  }
+               }
                break; // end NO_MSG_RCV
 
             case IS_MSG_RCV: //   продолжаем прием сообщения
@@ -258,68 +254,11 @@ int main(void)
                   switch (ssc_rcv_ctrl_msg[1])
                   {
                   case 0x0B:
-									printf("%x \n", ssc_rcv_ctrl_msg[7]);
-#if USE_EXT_UART == 1
-                     control_msg_ssi_uart_len = ssc_rcv_ctrl_msg[6]; // xnl data msg  отправляем в уарт
-                     uart_ctrl_msg[1] = control_msg_ssi_uart_len;
-                     if (control_msg_ssi_uart_len % 2)
-                     {
-                        memcpy(uart_ctrl_msg + 2, ssc_rcv_ctrl_msg + 7, control_msg_ssi_uart_len + 1);
-                        for (i = 0; i < (control_msg_ssi_uart_len + 1); i += 2)
-                        { // переставляем байты во временном массиве 1234->3412
-                           temp = *(uart_ctrl_msg + i + 1 + 2);
-                           *(uart_ctrl_msg + i + 1 + 2) = *(uart_ctrl_msg + i + 2);
-                           *(uart_ctrl_msg + i + 2) = temp;
-                        }
-                     }
-                     else
-                     {
-                        memcpy(uart_ctrl_msg + 2, ssc_rcv_ctrl_msg + 7, control_msg_ssi_uart_len);
-                        // [0] already = 0xC0 and 0x00BA dont need
-                        for (i = 0; i < control_msg_ssi_uart_len; i += 2)
-                        { // переставляем байты во временном массиве 1234->3412
-                           temp = *(uart_ctrl_msg + i + 1 + 2);
-                           *(uart_ctrl_msg + i + 1 + 2) = *(uart_ctrl_msg + i + 2);
-                           *(uart_ctrl_msg + i + 2) = temp;
-                        }
-                     }
-
-                     USART_WriteBuffer(USART1, uart_ctrl_msg, uart_ctrl_msg[1] + 2);
-                     USART_EnableIt(USART1, US_IER_TXBUFE);
-
-                     // ***************************** XNL_DATA_MSG_ACK *****************************************
-
-                     if ((ssc_rcv_ctrl_msg[3] == 0) || (ssc_rcv_ctrl_msg[3] == ob_adress))
-                     {
-                        XNL_DATA_MSG_ACK[4] = ssc_rcv_ctrl_msg[2];
-                        XNL_DATA_MSG_ACK[6] = ssc_rcv_ctrl_msg[3]; //ob_adress;
-                        XNL_DATA_MSG_ACK[7] = ssc_rcv_ctrl_msg[5];
-                        get_check_sum(XNL_DATA_MSG_ACK);
-                        ssc_tx_msg_length = 10;
-                        ssc_tx_msg_counter = 0;
-                        memcpy((ssc_txData_buf), (XNL_DATA_MSG_ACK), 20);
-                        while (!idle_frame_tx)
-                           ;
-                        idle_frame_tx = 0; //  ssc transmit
-                        ssc_tx_sound = 0;
-                        if (need_reply)
-                        {
-                           need_reply = 0;
-                           ssc_tx_msg_length = 14;
-                           ssc_tx_msg_counter = 0;
-                           while (!idle_frame_tx)
-                              ;
-                           memcpy(ssc_txData_buf, XNL_DATA_MSG_REPLY, 28);
-
-                           idle_frame_tx = 0; //  ssc transmit
-                           ssc_tx_sound = 0;
-                        }
-                     }
-#else
+                     printf("%x \n", ssc_rcv_ctrl_msg[7]);
                      XNL_DATA_MSG_ACK[4] = ssc_rcv_ctrl_msg[2];
                      XNL_DATA_MSG_ACK[7] = ssc_rcv_ctrl_msg[5];
                      get_check_sum(XNL_DATA_MSG_ACK);
-										 cntACK++;
+                     cntACK++;
                      if (idle_frame_tx)
                      {
                         need_ack = 0;
@@ -327,454 +266,234 @@ int main(void)
                         ssc_tx_msg_counter = 0;
                         memcpy((U8 *)ssc_txData_buf, (U8 *)XNL_DATA_MSG_ACK, 20);
                         idle_frame_tx = 0; //  ssc transmit
-												
                      }
                      else
                         need_ack = 1;
-#endif
                      break;
 
                   case 0x0C: // xnl data ack
-#if USE_EXT_UART
-                     control_msg_ssi_uart_len = ssc_rcv_ctrl_msg[6];
-                     uart_ctrl_msg[1] = control_msg_ssi_uart_len;
-                     memcpy(uart_ctrl_msg + 2, ssc_rcv_ctrl_msg + 7, control_msg_ssi_uart_len + 1);
-                     USART_WriteBuffer(USART1, uart_ctrl_msg, uart_ctrl_msg[1] + 2);
-                     USART_EnableIt(USART1, US_IER_TXBUFE);
-#endif
                      break;
                   default:
                      break;
                   }
-               }
-#if USE_EXT_UART == 1
-               break; // end IS_MSG_RCV
-            default:
-               break;
-            }
-#endif
-#if USE_EXT_UART == 0
-            if (ssc_rcv_ctrl_msg[7] == 0x041D) // control message from usb device
-            {
-               xnl_flags++;
-               if (xnl_flags == 0x0108)
-                  xnl_flags = 0x0100;
-               XNL_DATA_MSG_REPLY[4] = xnl_flags; // now prepare reply message
-               XNL_DATA_MSG_REPLY[7] = tract_id_reply;
-               XNL_DATA_MSG_REPLY[8] = 0x0005;
-               XNL_DATA_MSG_REPLY[9] = 0x841D;
-               XNL_DATA_MSG_REPLY[10] = 0x0000 | (ssc_rcv_ctrl_msg[8] >> 8); // result , function
-               XNL_DATA_MSG_REPLY[11] = (ssc_rcv_ctrl_msg[13] & 0xFF00);     // session , .....
-               need_reply = 1;
-               if ((ssc_rcv_ctrl_msg[14] & 0xff) == 0x0055) // if was reload then need audioroute
-               {
-                  //                  first_time = 0;
-               }
-               else if ((ssc_rcv_ctrl_msg[14] & 0xff) == 0x00AA) // go to analog mode for rcv
-               {
-                  //                  digital_mode = 0;
-               }
-               else if ((ssc_rcv_ctrl_msg[14] & 0xff) == 0x00FF) // go to digital mede for rcv
-               {
-                  //                  digital_mode = 1;
-               }
-               else if ((ssc_rcv_ctrl_msg[14] & 0xff) == 0x000A) // ip ferr agent
-               {
-                  //                  sound_msg_ssi_fa1[13] = 0x0A02; // 192.168.10.2 for rx sound
-               }
-               else if ((ssc_rcv_ctrl_msg[14] & 0xff) == 0x0014) // ip ferr agent
-               {
-                  //                  sound_msg_ssi_fa1[13] = 0x1402; // 192.168.20.2 for rx sound
-               }
-            }
-						if (ssc_rcv_ctrl_msg[7] == 0x841D)
-							cnt84++;
-						if(ssc_rcv_ctrl_msg[7] == 0xB41D)
-						  cntB4++;
-								//printf("%x %x %x\n", ssc_rcv_ctrl_msg[7] , ssc_rcv_ctrl_msg[8], ssc_rcv_ctrl_msg[10]);
 
-            if (ssc_rcv_ctrl_msg[7] == 0xB40E) //  передача!!!
-            {
-               //               if ((ssc_rcv_ctrl_msg[9] & 0xFF00) == 0x1100) // MIC_ENABLED_SEL
-               //               {
-               //                  memset((U8 *)(sound_msg_uart_ssi + 134), 0, 68);
-               //                  start_buff_out = 0;
-               //                  sound_frame_flag = 1;
-               //               }
-               //               else //((ssc_rcv_ctrl_msg[9] & 0xFF00) == 0x0000)// MIC_DISABLED
-               //               {
-               //                  sound_frame_count_in = 0;
-               //                  sound_frame_count_out = 0;
-               //                  sound_frame_flag = 0;
-               //                  memset((U8 *)(sound_msg_uart_ssi + 3), 0, 252);
-               //                  mic_enable = 0;
-               //               }
-            }
-            else if (ssc_rcv_ctrl_msg[7] == 0xB41E) //
-            {
-               if (digital_mode)
-               {
-                  //                  if ((ssc_rcv_ctrl_msg[8] & 0xFF) == 0x07) // call in hangtime
-                  //                  {
-                  //                     //uart1_rx_flag = 0; // stop sound
-                  //                     ssi_rx_cnt = 0;
-                  //                     rx_enable = 0;
-                  //                     call_decoded = 0;
-                  //                     sound_frame_flag = 0;
-                  //                     cntr = 0;
-                  //                  }
-                  //                  else if ((ssc_rcv_ctrl_msg[8] & 0xFF) == 0x08) // call decoded
-                  //                  {
-                  //                     call_decoded = 1;
-                  //                     rx_enable = 1;
-                  //                     j = 0;
-                  //                     ssi_rx_cnt = 0;
-                  //                     memset((U8 *)(sound_msg_uart_ssi + 3), 0, 252);
-                  //                  }
-
-                  //                  else if ((ssc_rcv_ctrl_msg[8] & 0xFF) == 0x03) // call ended
-                  //                  {
-                  //                     //uart1_rx_flag = 0; // stop sound
-                  //                     ssi_rx_cnt = 0;
-                  //                     call_decoded = 0;
-                  //                     rx_enable = 0;
-                  //                     sound_frame_flag = 0;
-                  //                     cntr = 0;
-                  //                     memset((U8 *)(sound_msg_ssi_fa1 + 18), 0, 222);
-                  //                     memset((U8 *)(sound_msg_ssi_fa2 + 2), 0, 254);
-                  //                  }
-               }
-               else // analog mode
-               {
-                  //                  if ((ssc_rcv_ctrl_msg[8] & 0xFF) == 0x03) // call ended
-                  //                  {
-                  //                     //uart1_rx_flag = 0; // stop sound
-                  //                     ssi_rx_cnt = 0;
-                  //                     rx_enable = 0;
-                  //                     call_decoded = 0;
-                  //                     sound_frame_flag = 0;
-                  //                     cntr = 0;
-                  //                     j = 0;
-                  //                  }
-                  //                  else if ((ssc_rcv_ctrl_msg[8] & 0xFF) == 0x01) // receive!!!!
-                  //                  {
-                  //                     call_decoded = 1;
-                  //                     rx_enable = 1;
-                  //                     j = 0;
-                  //                     ssi_rx_cnt = 0;
-                  //                     counter = 0;
-                  //                     sound_frame_flag = 0;
-                  //                     delay = 0;
-                  //                  }
-               }
-            }
-            else if (ssc_rcv_ctrl_msg[7] == 0xB41C) //
-            {
-               //               if (ssc_rcv_ctrl_msg[8] == 0x0310) // call remote monitor
-               //               {
-               //                  call_decoded = 1;
-               //                  rx_enable = 1;
-               //                  j = 0;
-               //                  ssi_rx_cnt = 0;
-               //                  memset((U8 *)(sound_msg_uart_ssi + 3), 0, 252);
-               //               }
-            }
-
-            if (!first_time && (ssc_rcv_ctrl_msg[7] == 0xB407)) // end of initialization go to audio route
-            {
-							printf("%x %x\n", ssc_rcv_ctrl_msg[7] , ssc_rcv_ctrl_msg[8]);	
-               //               first_time = 1;
-               //               audio_route_req[6] = sound_msg_ssi_fa1[6] = ob_adress;
-               //               TC_Start(TC0, 2); // wait 2ms and write AUD_ROUTE see need_aud_route
-            }
-#endif
-
-#if USE_EXT_UART
-            if (uart1_rx_flag == CTRL_MSG_FROM_UART)
-            { //transmit mesage from uart
-               uart1_rx_flag = 0;
-               {
-                  ++xnl_flags;
-                  if (xnl_flags == 0x0108)
-                     xnl_flags = 0x0100;
-                  ++tract_id_my;
-                  tract_id_my_hi += tract_id_my;
-                  ctrl_msg_uart_ssi[4] = xnl_flags;
-                  ctrl_msg_uart_ssi[6] = ob_adress;
-                  ctrl_msg_uart_ssi[7] = tract_id_my_hi;
-                  // ***********************************************
-                  if ((uart1_rx_msg_len - 2) < 241)
+                  if (ssc_rcv_ctrl_msg[7] == 0x041D) // control message from usb device
                   {
-                     //send_ssi_0_240();// 254 - checksum(2) - 12(head)
-                     // ***** Первый фрейм****
-                     ctrl_msg_uart_ssi[8] = uart1_rx_msg_len - 2;
-                     ctrl_msg_uart_ssi[1] = 0x4000 + (12 + uart1_rx_msg_len);
-                     if (uart1_rx_msg_len % 2)
-                     { // если нечетное - в конец добавим 0х00
-                        *(uart1_rx_buf + uart1_rx_msg_len) = 0x00;
-                        uart1_rx_msg_len++;
+                     xnl_flags++;
+                     if (xnl_flags == 0x0108)
+                        xnl_flags = 0x0100;
+                     XNL_DATA_MSG_REPLY[4] = xnl_flags; // now prepare reply message
+                     XNL_DATA_MSG_REPLY[7] = tract_id_reply;
+                     XNL_DATA_MSG_REPLY[8] = 0x0005;
+                     XNL_DATA_MSG_REPLY[9] = 0x841D;
+                     XNL_DATA_MSG_REPLY[10] = 0x0000 | (ssc_rcv_ctrl_msg[8] >> 8); // result , function
+                     XNL_DATA_MSG_REPLY[11] = (ssc_rcv_ctrl_msg[13] & 0xFF00);     // session , .....
+                     need_reply = 1;
+                     if ((ssc_rcv_ctrl_msg[14] & 0xff) == 0x0055) // if was reload then need audioroute
+                     {
+                        //                  first_time = 0;
                      }
-                     uart1_rx_msg_len -= 2; // длина без 0xC0,0xLen
-                     for (i = 0; i < uart1_rx_msg_len; i += 2)
-                     {                                                      // переставляем байты во временном массиве 1234->3412
-                        *(temp_uart_buf + i) = *(uart1_rx_buf + i + 1 + 2); // start after 0xC0,0xLen
-                        *(temp_uart_buf + i + 1) = *(uart1_rx_buf + i + 2);
+                     else if ((ssc_rcv_ctrl_msg[14] & 0xff) == 0x00AA) // go to analog mode for rcv
+                     {
+                        //                  digital_mode = 0;
                      }
-                     memcpy(ctrl_msg_uart_ssi + 9, temp_uart_buf, uart1_rx_msg_len); //+ 2);// -2 + 4 (00ba 0000)
-                     ssc_tx_msg_length = uart1_rx_msg_len >> 1;                      // длинна теперь в словах
-                     ctrl_msg_uart_ssi[ssc_tx_msg_length + 9] = 0x00BA;              // +терминатор
-                     if (ssc_tx_msg_length % 2)
-                     { // для окончания фрейма добавить 0х0000 , если нечетное к-во слов
-                        ctrl_msg_uart_ssi[ssc_tx_msg_length + 10] = 0x0000;
-                        ssc_tx_msg_length++;
+                     else if ((ssc_rcv_ctrl_msg[14] & 0xff) == 0x00FF) // go to digital mede for rcv
+                     {
+                        //                  digital_mode = 1;
                      }
-                     uart1_rx_msg_len = MAX_LEN_BUF; // подготовка для следующего приема
-                     get_check_sum(ctrl_msg_uart_ssi);
-                     // отправка сформированного сообщения
-                     ssc_tx_msg_length += 10; // 3(ssi)+6(xnml)+1(00BA)
-                     ssc_tx_msg_counter = 0;
-                     memcpy((ssc_txData_buf), (ctrl_msg_uart_ssi), (ssc_tx_msg_length << 1));
-                     ssc_txFrame_buf[4] = 0xABCD;
-                     ssc_txFrame_buf[5] = 0x5A5A;
-                     ssc_txFrame_buf[6] = 0;
-                     ssc_txFrame_buf[7] = 0;
-                     while (!idle_frame_tx)
-                        ;
-                     idle_frame_tx = 0;
+                     else if ((ssc_rcv_ctrl_msg[14] & 0xff) == 0x000A) // ip ferr agent
+                     {
+                        //                  sound_msg_ssi_fa1[13] = 0x0A02; // 192.168.10.2 for rx sound
+                     }
+                     else if ((ssc_rcv_ctrl_msg[14] & 0xff) == 0x0014) // ip ferr agent
+                     {
+                        //                  sound_msg_ssi_fa1[13] = 0x1402; // 192.168.20.2 for rx sound
+                     }
                   }
-                  else if ((uart1_rx_msg_len - 2) < 493)
+                  if (ssc_rcv_ctrl_msg[7] == 0x841D)
+                     cnt84++;
+                  if (ssc_rcv_ctrl_msg[7] == 0xB41D)
+                     cntB4++;
+                  //printf("%x %x %x\n", ssc_rcv_ctrl_msg[7] , ssc_rcv_ctrl_msg[8], ssc_rcv_ctrl_msg[10]);
+
+                  if (ssc_rcv_ctrl_msg[7] == 0xB40E) //  передача!!!
                   {
-                     //send_ssi_0_492();//  (2*254 - checksum(2))*2 - 12(head)
-                     // ***** Первый фрейм****
-                     ctrl_msg_uart_ssi[8] = uart1_rx_msg_len - 2; // общая длинна сообщения
-                     ctrl_msg_uart_ssi[1] = 0x41FE;               // + (2 + 12 + 240 );//first fragment chs(2)+head(12)+maxlen;
-                     if (uart1_rx_msg_len % 2)
-                     { // если нечетное - в конец добавим 0х00
-                        *(uart1_rx_buf + uart1_rx_msg_len) = 0x00;
-                        uart1_rx_msg_len++;
-                     }
-                     uart1_rx_msg_len -= 2; // длина без 0xC1,0xХХ
-                     for (i = 0; i < 240; i += 2)
-                     {                                                      // переставляем байты во временном массиве 1234->3412
-                        *(temp_uart_buf + i) = *(uart1_rx_buf + i + 1 + 2); // start after 0xC0,0xLen
-                        *(temp_uart_buf + i + 1) = *(uart1_rx_buf + i + 2);
-                     }
-                     memcpy(ctrl_msg_uart_ssi + 9, temp_uart_buf, 240); //+ 2);// -2 + 4 (00ba 0000)
-
-                     ctrl_msg_uart_ssi[129] = 0x00BA;
-                     get_check_sum(ctrl_msg_uart_ssi);
-
-                     remain_len = uart1_rx_msg_len - 240; // остаток сообщения
-                     // ***** Второй фрейм****
-                     ctrl_msg_uart_ssi[130] = 0xABCD;
-                     ctrl_msg_uart_ssi[131] = 0x4300 + 2 + remain_len; //chs(2) + remain_len
-
-                     for (i = 0; i < remain_len; i += 2)
-                     {                                                            // переставляем байты во временном массиве 1234->3412
-                        *(temp_uart_buf + i) = *(uart1_rx_buf + i + 1 + 2 + 240); // start after 0xC0,0xLen
-                        *(temp_uart_buf + i + 1) = *(uart1_rx_buf + i + 2 + 240);
-                     }
-                     memcpy(ctrl_msg_uart_ssi + 133, temp_uart_buf, remain_len); //+ 2);// -2 + 4 (00ba 0000)
-                     ssc_length = remain_len >> 1;
-                     //ssc_tx_msg_length = remain_len >> 1;
-                     ctrl_msg_uart_ssi[130 + 3 + ssc_length] = 0x00BA; // +терминатор
-                     //ctrl_msg_uart_ssi[130 + ssc_tx_msg_length + 3] = 0x00BA; // +терминатор
-                     if (ssc_length % 2)
-                     { // для окончания фрейма добавить 0х0000 , если нечетное к-во слов
-                        ctrl_msg_uart_ssi[130 + 3 + ssc_length + 1] = 0x0000;
-                        ssc_length++;
-                     }
-                     uart1_rx_msg_len = MAX_LEN_BUF; // для нового приема по уарт
-                     get_check_sum(ctrl_msg_uart_ssi + 130);
-                     ssc_length = 130 + 3 + ssc_length + 1;
-                     ssc_tx_msg_length = ssc_length;
-                     ssc_tx_msg_counter = 0;
-                     memcpy(ssc_txData_buf, ctrl_msg_uart_ssi, ssc_tx_msg_length << 1);
-                     ssc_txFrame_buf[4] = 0xABCD;
-                     ssc_txFrame_buf[5] = 0x5A5A;
-                     ssc_txFrame_buf[6] = 0;
-                     ssc_txFrame_buf[7] = 0;
-                     while (!idle_frame_tx)
-                        ;
-                     idle_frame_tx = 0;
+                     //               if ((ssc_rcv_ctrl_msg[9] & 0xFF00) == 0x1100) // MIC_ENABLED_SEL
+                     //               {
+                     //                  memset((U8 *)(sound_msg_uart_ssi + 134), 0, 68);
+                     //                  start_buff_out = 0;
+                     //                  sound_frame_flag = 1;
+                     //               }
+                     //               else //((ssc_rcv_ctrl_msg[9] & 0xFF00) == 0x0000)// MIC_DISABLED
+                     //               {
+                     //                  sound_frame_count_in = 0;
+                     //                  sound_frame_count_out = 0;
+                     //                  sound_frame_flag = 0;
+                     //                  memset((U8 *)(sound_msg_uart_ssi + 3), 0, 252);
+                     //                  mic_enable = 0;
+                     //               }
                   }
-                  else if ((uart1_rx_msg_len - 2) < 745)
+                  else if (ssc_rcv_ctrl_msg[7] == 0xB41E) // call control broadcast
                   {
-                     // ***** Первый фрейм****
-                     copy_length = uart1_rx_msg_len - 2;
-                     if (uart1_rx_buf[0] > 0xC2)
-                        uart1_rx_msg_len -= 3; // был добавлен байт 0х00 для выравнивания
+                     if (digital_mode)
+                     {
+                        //                  if ((ssc_rcv_ctrl_msg[8] & 0xFF) == 0x07) // call in hangtime
+                        //                  {
+                        //                     //uart1_rx_flag = 0; // stop sound
+                        //                     ssi_rx_cnt = 0;
+                        //                     rx_enable = 0;
+                        //                     call_decoded = 0;
+                        //                     sound_frame_flag = 0;
+                        //                     cntr = 0;
+                        //                  }
+                        //                  else if ((ssc_rcv_ctrl_msg[8] & 0xFF) == 0x08) // call decoded
+                        //                  {
+                        //                     call_decoded = 1;
+                        //                     rx_enable = 1;
+                        //                     j = 0;
+                        //                     ssi_rx_cnt = 0;
+                        //                     memset((U8 *)(sound_msg_uart_ssi + 3), 0, 252);
+                        //                  }
+
+                        //                  else if ((ssc_rcv_ctrl_msg[8] & 0xFF) == 0x03) // call ended
+                        //                  {
+                        //                     //uart1_rx_flag = 0; // stop sound
+                        //                     ssi_rx_cnt = 0;
+                        //                     call_decoded = 0;
+                        //                     rx_enable = 0;
+                        //                     sound_frame_flag = 0;
+                        //                     cntr = 0;
+                        //                     memset((U8 *)(sound_msg_ssi_fa1 + 18), 0, 222);
+                        //                     memset((U8 *)(sound_msg_ssi_fa2 + 2), 0, 254);
+                        //                  }
+                     }
+                     else // analog mode
+                     {
+                        //                  if ((ssc_rcv_ctrl_msg[8] & 0xFF) == 0x03) // call ended
+                        //                  {
+                        //                     //uart1_rx_flag = 0; // stop sound
+                        //                     ssi_rx_cnt = 0;
+                        //                     rx_enable = 0;
+                        //                     call_decoded = 0;
+                        //                     sound_frame_flag = 0;
+                        //                     cntr = 0;
+                        //                     j = 0;
+                        //                  }
+                        //                  else if ((ssc_rcv_ctrl_msg[8] & 0xFF) == 0x01) // receive!!!!
+                        //                  {
+                        //                     call_decoded = 1;
+                        //                     rx_enable = 1;
+                        //                     j = 0;
+                        //                     ssi_rx_cnt = 0;
+                        //                     counter = 0;
+                        //                     sound_frame_flag = 0;
+                        //                     delay = 0;
+                        //                  }
+                     }
+                  }
+                  else if (ssc_rcv_ctrl_msg[7] == 0xB41C) //
+                  {
+                     //               if (ssc_rcv_ctrl_msg[8] == 0x0310) // call remote monitor
+                     //               {
+                     //                  call_decoded = 1;
+                     //                  rx_enable = 1;
+                     //                  j = 0;
+                     //                  ssi_rx_cnt = 0;
+                     //                  memset((U8 *)(sound_msg_uart_ssi + 3), 0, 252);
+                     //               }
+                  }
+
+                  if (!first_time && (ssc_rcv_ctrl_msg[7] == 0xB407)) // end of initialization go to audio route
+                  {
+                     //printf("%x %x\n", ssc_rcv_ctrl_msg[7], ssc_rcv_ctrl_msg[8]);
+                     //               first_time = 1;
+                     //               audio_route_req[6] = sound_msg_ssi_fa1[6] = ob_adress;
+                     //               TC_Start(TC0, 2); // wait 2ms and write AUD_ROUTE see need_aud_route
+                  }
+
+                  break; // end IS_MSG_RCV
+               default:
+                  break;
+               }
+            }
+            accel_counter++;
+            if (accel_counter >= 4000) //1/4 sec{
+            {
+               //accel_demo();
+               if (MPU6050_GetAllData(Data) == 0)
+               {
+                  Z += Data[2];
+                  mean_counter++;
+                  if (mean_counter == 8)
+                  {
+                     mean_counter = 0;
+                     GPIOD->ODR ^= 0x1000; // pd12 green
+                     Z = Z >> 3;
+                     if (((Z < 25600) && (Z > 23600)) || ((Z < -7500) && (Z > -9500)))
+                     {
+                        //printf("%d %d\n", Z , md_counter);
+                        if (md_counter < 7)
+                           md_counter++;
+                        if (md_counter >= 3)
+                        {
+                           if (!message_start)
+                           {
+                              message_start = 1;
+                              GPIOA->ODR ^= 0x200;
+
+                              ++xnl_flags;
+                              if (xnl_flags == 0x0108)
+                                 xnl_flags = 0x0100;
+                              ++tract_id_my;
+                              tract_id_my_hi += tract_id_my;
+                              ctrl_msg_uart_ssi[4] = xnl_flags;
+                              ctrl_msg_uart_ssi[6] = ob_adress;
+                              ctrl_msg_uart_ssi[7] = tract_id_my_hi;
+
+                              ctrl_msg_uart_ssi[8] = 17;
+                              ctrl_msg_uart_ssi[1] = 0x4000 + (12 + 2 + 17);
+
+                              memcpy(ctrl_msg_uart_ssi + 9, sendMdMsg, 17 + 1);
+                              ssc_tx_msg_length = 9;                             // (17+1) / 2 длинна теперь в словах
+                              ctrl_msg_uart_ssi[ssc_tx_msg_length + 9] = 0x00BA; // +терминатор
+                              if (ssc_tx_msg_length % 2)
+                              { // для окончания фрейма добавить 0х0000 , если нечетное к-во слов
+                                 ctrl_msg_uart_ssi[ssc_tx_msg_length + 10] = 0x0000;
+                                 ssc_tx_msg_length++;
+                              }
+                              get_check_sum(ctrl_msg_uart_ssi);
+                              // отправка сформированного сообщения
+                              ssc_tx_msg_length = 10 + 10; // ssc_tx_msg_length + 3(ssi)+6(xnml)+1(00BA)
+                              ssc_tx_msg_counter = 0;
+                              memcpy((ssc_txData_buf), (ctrl_msg_uart_ssi), (ssc_tx_msg_length << 1));
+                              idle_frame_tx = 0;
+                           }
+                        }
+                     }
                      else
-                        uart1_rx_msg_len -= 2;
-
-                     ctrl_msg_uart_ssi[8] = uart1_rx_msg_len;
-                     ctrl_msg_uart_ssi[1] = 0x41FE;
-                     //													if(uart1_rx_msg_len % 2)
-                     //													{// если нечетное - в конец добавим 0х00
-                     //															//*(uart1_rx_buf + uart1_rx_msg_len) = 0x00;
-                     //															uart1_rx_msg_len++;
-                     //													}
-                     // длина без 0xC1,0xLen
-
-                     //													for(i = 0 ; i < 240; i+=2)
-                     //													{// переставляем байты во временном массиве 1234->3412
-                     //															*(temp_uart_buf + i ) = *(uart1_rx_buf + i + 1 + 2);// start after 0xC0,0xLen
-                     //															*(temp_uart_buf + i + 1) = *(uart1_rx_buf + i + 2 );
-                     //													}
-                     memcpy(ctrl_msg_uart_ssi + 9, uart1_rx_buf + 2, 240); //+ 2);// -2 + 4 (00ba 0000)
-                     ctrl_msg_uart_ssi[129] = 0x00BA;
-                     get_check_sum(ctrl_msg_uart_ssi);
-
-                     // ***** Второй фрейм****
-                     ctrl_msg_uart_ssi[130] = 0xABCD;
-                     ctrl_msg_uart_ssi[131] = 0x42FE;
-
-                     //													for(i = 0 ; i < 252; i+=2)
-                     //													{// переставляем байты во временном массиве 1234->3412
-                     //															*(temp_uart_buf + i)  = *(uart1_rx_buf + i + 1 + 2 + 240);// start after 0xC0,0xLen
-                     //															*(temp_uart_buf + i + 1) = *(uart1_rx_buf + i + 2 + 240);
-                     //													}
-                     memcpy(ctrl_msg_uart_ssi + 133, uart1_rx_buf + 240 + 2, 252); //+ 2);// -2 + 4 (00ba 0000)
-                     ctrl_msg_uart_ssi[130 + 129] = 0x00BA;                        // +терминатор
-                     get_check_sum(ctrl_msg_uart_ssi + 130);
-
-                     // ***** Третий фрейм****
-                     ctrl_msg_uart_ssi[130 + 130] = 0xABCD;
-                     remain_len = uart1_rx_msg_len - 240 - 252; // столько будет payload в последнем фрейме
-                     ctrl_msg_uart_ssi[130 + 131] = 0x4300 + 2 + remain_len;
-
-                     copy_length -= (240 + 252); // столько будем копировать в ctrl_msg_uart_ssi
-
-                     // ********** вставили 27.02.19****************
-                     //													for(i = 0 ; i < remain_len; i += 2)
-                     //													{// переставляем байты во временном массиве 1234->3412
-                     //															*(temp_uart_buf + i)  = *(uart1_rx_buf + i + 1 + 2 + 240 + 252);// start after 0xC0,0xLen
-                     //															*(temp_uart_buf + i + 1) = *(uart1_rx_buf + i + 2 + 240 + 252);
-                     //													}
-                     memcpy(ctrl_msg_uart_ssi + 130 + 133, uart1_rx_buf + 240 + 252 + 2, copy_length); //+ 2);// -2 + 4 (00ba 0000)
-
-                     ssc_length = copy_length >> 1;
-                     ctrl_msg_uart_ssi[130 + 130 + 3 + ssc_length] = 0x00BA; // +терминатор
-
-                     ssc_tx_msg_length = (ssc_length) + (130 + 130); //
-                     if (ssc_tx_msg_length % 2)
-                     { // для окончания фрейма добавить 0х0000 , если нечетное к-во слов
-                        ctrl_msg_uart_ssi[130 + 130 + 3 + ssc_tx_msg_length + 1] = 0x0000;
-                        ssc_tx_msg_length++;
+                     {
+                        if (md_counter > 0)
+                           md_counter--;
+                        if (md_counter < 3)
+                        {
+                           if (message_start)
+                           {
+                              GPIOA->ODR &= ~0x200;
+                              message_start = 0;
+                           }
+                        }
+                        //printf("Acc: %d %d\n", md_counter, Z);
                      }
-                     get_check_sum(ctrl_msg_uart_ssi + 130 + 130);
-                     ssc_tx_msg_length += 4;
-
-                     //uart1_rx_msg_len = MAX_LEN_BUF;
-                     ssc_tx_msg_counter = 0;
-                     memcpy((ssc_txData_buf), (ctrl_msg_uart_ssi), ssc_tx_msg_length << 1);
-                     ssc_txFrame_buf[4] = 0xABCD;
-                     ssc_txFrame_buf[5] = 0x5A5A;
-                     ssc_txFrame_buf[6] = 0;
-                     ssc_txFrame_buf[7] = 0;
-                     while (!idle_frame_tx)
-                        ;
-                     idle_frame_tx = 0;
+                     Z = 0;
                   }
+                  accel_counter = 0;
                }
             }
-            else
-               memcpy(ssc_idle_frame + 4, ssc_rcv_buf + 4, 8); // это пропускаем через опт. боард в станцию
-#endif
-
-#if USE_EXT_UART == 0
-            break; // end IS_MSG_RCV
-         default:
-            break;
          }
-#endif
-         accel_counter++;
-         if (accel_counter >= 4000) //1/4 sec{
-         {
-            //accel_demo();
-            if (MPU6050_GetAllData(Data) == 0)
-            {
-               Z += Data[2];
-               mean_counter++;
-               if (mean_counter == 8)
-               {
-							    mean_counter = 0;
-							    GPIOD->ODR ^= 0x1000; // pd12 green
-                  Z = Z >> 3;
-                  if (((Z < 25600) && (Z > 23600)) || ((Z < -7500) && (Z > -9500)))
-                  {
-									   //printf("%d %d\n", Z , md_counter);
-                     if (md_counter < 7)
-                        md_counter++;
-                     if (md_counter >= 3)
-                     {
-                        if (!message_start)
-                        {
-                           message_start = 1;
-                           GPIOA->ODR ^= 0x200;
-
-                           ++xnl_flags;
-                           if (xnl_flags == 0x0108)
-                              xnl_flags = 0x0100;
-                           ++tract_id_my;
-                           tract_id_my_hi += tract_id_my;
-                           ctrl_msg_uart_ssi[4] = xnl_flags;
-                           ctrl_msg_uart_ssi[6] = ob_adress;
-                           ctrl_msg_uart_ssi[7] = tract_id_my_hi;
-
-                           ctrl_msg_uart_ssi[8] = 17;
-                           ctrl_msg_uart_ssi[1] = 0x4000 + (12 + 2 + 17);
-
-                           memcpy(ctrl_msg_uart_ssi + 9, sendMdMsg, 17+1);
-													 ssc_tx_msg_length = 9; // (17+1) / 2 длинна теперь в словах
-													 ctrl_msg_uart_ssi[ssc_tx_msg_length + 9] = 0x00BA;              // +терминатор
-													 if (ssc_tx_msg_length % 2)
-													 { // для окончания фрейма добавить 0х0000 , если нечетное к-во слов
-															ctrl_msg_uart_ssi[ssc_tx_msg_length + 10] = 0x0000;
-															ssc_tx_msg_length++;
-													 }
-                           get_check_sum(ctrl_msg_uart_ssi);
-                           // отправка сформированного сообщения
-                           ssc_tx_msg_length = 10 + 10; // ssc_tx_msg_length + 3(ssi)+6(xnml)+1(00BA)
-                           ssc_tx_msg_counter = 0;
-                           memcpy((ssc_txData_buf), (ctrl_msg_uart_ssi), (ssc_tx_msg_length << 1));
-                           idle_frame_tx = 0;
-                        }
-                     }
-                  }
-                  else
-                  {
-                     if (md_counter > 0)
-                        md_counter--;
-                     if (md_counter < 3)
-                     {
-                        if (message_start)
-                        {
-                           GPIOA->ODR &= ~0x200;
-                           message_start = 0;
-                        }
-                     }
-                     
-                     
-                     //printf("Acc: %d %d\n", md_counter, Z);
-                     
-                  }
-                Z = 0;  
-               }
-							 accel_counter = 0;
-            }
-         }
+         else
+            conn_process();
       }
-      else
-         conn_process();
    }
-
-   /* USER CODE END WHILE */
-
-   /* USER CODE BEGIN 3 */
-
-   /* USER CODE END 3 */
-}
 }
 
 /**
