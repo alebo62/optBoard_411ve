@@ -167,7 +167,7 @@ uint16_t repiter_channel;
 uint16_t current_channel;
 uint32_t *source_addr;
 uint32_t *dest_addr;
-const uint8_t option_cnt = 15;
+const uint8_t option_cnt = 16;
 enum
 {
    CHAN_RPT = 0,
@@ -184,26 +184,28 @@ enum
    Y2MIN,
    CH_24G,    // 2.4G
    REG_TIMER, // 2.4G
-   INDOOR_POS
+   INDOOR_POS,
+	 CTRL_RAD_NUM
 };
 int32_t options[option_cnt] = {
-    0x0400, // chan 4 << 8
-    30,     // repeit alarm timer sec
-    7,      // max cnt accel
-    3,      // porog cnt accel
-    25600,  // z1max
-    23600,  // z1min
-    -7500,  // z2max
-    -9500,  // z2min
-    16600,  // y1max
-    15000,  // y1min
-    -15000, // y2max
-    -16600, // y2min
-    76,     // ch num 2.4G
-    30,     // registration timer 2.4G
-    0       // indoor registration
+    0x0400, //0 chan 4 << 8 
+    30,     //1 repeit alarm timer sec
+    7,      //2 max cnt accel
+    3,      //3 porog cnt accel
+    25600,  //4 z1max
+    23600,  //5 z1min
+    -7500,  //6 z2max
+    -9500,  //7 z2min
+    16600,  //8 y1max
+    15000,  //9 y1min
+    -15000, //10 y2max
+    -16600, //11 y2min
+    76,     //12 ch num 2.4G
+    30,     //13 registration timer 2.4G
+    0,       //14 indoor registration
+		200     // 15control station number
 };
-uint8_t test[15];
+uint8_t test[16];
 
 FLASH_EraseInitTypeDef EraseInitStruct;
 uint32_t SectorError = 0;
@@ -582,7 +584,7 @@ int main(void)
                      Z = Z >> 6;
                      Y = Y >> 6;
                      printf("Y: %d Z: %d\n", Y, Z);
-                     if ((((Z < options[Z1MAX]) && (Z > options[Z1MIN])) || ((Z < options[Z2MAX]) && (Z > options[Z1MIN]))) || (((Y < options[Y1MAX]) && (Y > options[Y1MIN])) || ((Y < options[Y2MAX]) && (Y > options[Y2MIN])))) // horisontal position
+                     if ((((Z < options[Z1MAX]) && (Z > options[Z1MIN])) || ((Z < options[Z2MAX]) && (Z > options[Z2MIN]))) || (((Y < options[Y1MAX]) && (Y > options[Y1MIN])) || ((Y < options[Y2MAX]) && (Y > options[Y2MIN])))) // horisontal position
                      {
                         //printf("%d %d\n", Z , md_counter);
                         if (md_counter < options[MAX_CNT_ACCEL])
