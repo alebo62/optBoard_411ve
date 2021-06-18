@@ -32,6 +32,12 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#define USE_EXT_UART 0
+#define CTRL_MSG_FROM_UART 1
+#define NO_MSG_RCV 0
+#define IS_MSG_RCV 1
+#define FA_RPT_CH 0x8010000 // 64kB
+
 
 /* USER CODE END Includes */
 
@@ -54,7 +60,10 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void erase_flash(void);
+void read_flash(void);
+void write_flash(void);
+void detect_free(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

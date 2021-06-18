@@ -60,6 +60,20 @@ void MX_GPIO_Init(void)
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 	
+	/* **************Configure GPIO pin : PA3(8) for NRF24L01*********************** */
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	
+	// ***************** For 24L01+   PIN12 - NSS(4)             PIN13 - CE(3) ************
+ 	GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_13; 
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+	
 	GPIO_InitStruct.Pin = GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -79,13 +93,16 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-  /* EXTI interrupt init*/
+	
+	/* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 	
+	//HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 1);
+  //HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+	
 	//GPIOC->ODR |= 0x02;
-	GPIOA->ODR &= ~0x200;//  green led off
+	GPIOD->ODR &= ~0x200;//  green led off
 	GPIOD->ODR &= ~0x2000;// orange led off
 	GPIOD->ODR |=  0x4000;// red led on
 }

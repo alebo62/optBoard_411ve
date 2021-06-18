@@ -21,6 +21,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f4xx_it.h"
+#include "nrf24L01.h"
+#include "tim.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -32,8 +34,11 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-extern TIM_HandleTypeDef htim1; 
-extern TIM_HandleTypeDef htim2; 
+//extern TIM_HandleTypeDef htim1; 
+//extern TIM_HandleTypeDef htim2; 
+//extern TIM_HandleTypeDef htim3;
+//extern TIM_HandleTypeDef htim4;
+
 extern I2C_HandleTypeDef hi2c;
 /* USER CODE END PD */
 
@@ -67,9 +72,57 @@ extern volatile uint8_t idle_frame_tx;
 extern uint16_t ssc_txData_buf[510];
 extern uint16_t ssc_tx_msg_length;
 extern uint16_t ssc_tx_msg_counter;
+extern uint8_t message_start;
+extern uint8_t send_delay;
 uint16_t ssc_txFrame_buf[8]   = {0, 0, 0x0000, 0x0000, 0xABCD, 0x5A5A, 0, 0};
 uint16_t idle_frame_tx_buf[8] = {0, 0, 0xABCD, 0x5A5A, 0xABCD, 0x5A5A, 0, 0};
 
+extern SPI_HandleTypeDef hspi2;
+extern uint8_t send_buf[];
+extern uint8_t rcv_buf[];
+extern volatile uint8_t send_buf_cnt;
+extern volatile uint8_t rcv_buf_cnt;
+
+void TIM3_IRQHandler(void)
+{
+  __HAL_TIM_CLEAR_IT(&htim3, TIM_IT_CC1);
+	message_start = 0;
+	__HAL_TIM_DISABLE(&htim3);
+}
+void TIM4_IRQHandler(void)// for 24l01+
+{
+  __HAL_TIM_CLEAR_IT(&htim4, TIM_IT_CC1);
+	send_delay = 1;
+	__HAL_TIM_DISABLE(&htim4);
+}
+
+void TIM5_IRQHandler(void)// for 24l01+
+{
+  __HAL_TIM_CLEAR_IT(&htim5, TIM_IT_CC1);
+	//GPIOA->ODR ^= 0x200;
+	send_delay = 1;
+	__HAL_TIM_DISABLE(&htim5);
+}
+
+void SPI2_IRQHandler(void)
+{
+	if(SPI_CHECK_FLAG( hspi2.Instance->SR, SPI_FLAG_RXNE) != RESET)
+	{
+		rcv_buf[rcv_buf_cnt--] = hspi2.Instance->DR;
+		if(rcv_buf_cnt == 0){
+			__HAL_SPI_DISABLE_IT(&hspi2, SPI_IT_RXNE);
+		  CS_OFF;
+		}
+	}
+	if(SPI_CHECK_FLAG( hspi2.Instance->SR, SPI_FLAG_TXE) != RESET)
+	{
+		hspi2.Instance->DR = send_buf[--send_buf_cnt];
+		if(send_buf_cnt == 0)
+		__HAL_SPI_DISABLE_IT(&hspi2, SPI_IT_TXE);
+	}
+  /* USER CODE BEGIN SPI1_IRQn 1 */
+  /* USER CODE END SPI1_IRQn 1 */
+}
 /* USER CODE BEGIN EV */
 //void SPI1_IRQHandler(void)
 //{
@@ -160,6 +213,15 @@ void EXTI1_IRQHandler(void)
 			htim1.Instance->CR1 |= TIM_CR1_CEN;
 		}			
 		temp++;
+}
+
+// ********** RX 24L01+  *****************  
+volatile uint8_t nrf_rx_flag;
+void EXTI3_IRQHandler(void)
+{
+	__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_3);
+	//LED_TGL;
+		nrf_rx_flag = 1;
 }
 
 void I2C1_EV_IRQHandler(void)

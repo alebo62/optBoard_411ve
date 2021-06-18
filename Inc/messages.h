@@ -2,7 +2,7 @@
 #define _MESSAGES_
 #include "stdint.h"
 
-typedef uint16_t U16;
+#define U16 uint16_t
 typedef uint8_t  U8;
 //#include "board.h"
 
@@ -85,37 +85,20 @@ U16 data_session_req[] = {0xABCD,0x401A,0xFFFF,0x000B, // запрос сессии
 	                        0x01FF,0x0006,0x00FF,0xFFFF,
 												  0x000C,0x041D,0x1050,0x0204,
                           0xC0A8,0x1E02,0x0FA4,0x00BA};
-struct structSendMsg{ // len = 15
-  U8 commandDataSessionReq[2];//0x041D
-  U8 function;//01
-  U8 rawData;//0x50
-  U8 addressType;// 02 ip
-  U8 addressLen; // 04
-  U8 destIP[4];
-  U8 destPort[2];
-  U8 sessionID;
-  U16 payloadLen;
-  // + payload (ping , data, ...)
-};
+//struct structSendMsg{ // len = 15
+//  U8 commandDataSessionReq[2];//0x041D
+//  U8 function;//01
+//  U8 rawData;//0x50
+//  U8 addressType;// 02 ip
+//  U8 addressLen; // 04
+//  U8 destIP[4];
+//  U8 destPort[2];
+//  U8 sessionID;
+//  U16 payloadLen;
+//  // + payload (ping , data, ...)
+//};
 //U16 sendMdMsg{0xABCD,0x0000,0x0000,0x000B,0x0000,0x0006};
-U16 sendMdMsg[] = {//0xABCD,0x4020,0x49E2,0x000B, 0x0100,0x0006, 0x0001,0x0105,
-									 //0x0000, // length  [8]
-									 0x041D, // xcmp arcontrol  [9]
-									 
-									 0x0150,
-									 0x0204,
-									 
-									 0x0C00,//dest ip
-									 0x0514,// dest ip
-									 
-									 0x0FA4,// dest port
-									 0x0100,// session id
-									 
-									 0x02AA,// payload len
-									 0xBB00,// payload 		
-									 
-									 0x00BA,
-									 0x0000
-									  };										
+U16 sendMdMsg[11];
+U16 chngChanMsg[5];												
 
 #endif

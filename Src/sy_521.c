@@ -11,7 +11,8 @@
 
 
 */
-#define ONLY_Z 1
+//#define ONLY_Z 1
+
 #define WHO_AM_I_REG 0x75
 #define PWR_MGMT_1_REG 0x6B
 #define SMPLRT_DIV_REG 0x19
@@ -89,7 +90,7 @@ void I2Cx_Init(void)
 		}
 		//__HAL_I2C_DISABLE_IT(&hi2c, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
 		
-		//MPU6050_Init(&hi2c);// test
+		MPU6050_Init(&hi2c);// test
 		
 		//MPU6050_Calibrate();
 		//printf("Acc: %d %d %d\n", fAX_Cal, fAY_Cal, fAZ_Cal);
@@ -132,7 +133,7 @@ void I2Cx_Init(void)
 
 uint8_t MPU6050_Init(I2C_HandleTypeDef *I2Cx) {
 	uint8_t check;
-	uint8_t Data;  
+	 uint8_t Data;  
     // check device ID WHO_AM_I
 	 
 		HAL_I2C_Mem_Read_IT(I2Cx, MPU6050_ADDR, WHO_AM_I_REG, 1, &check, 1);
@@ -250,19 +251,21 @@ uint8_t MPU6050_GetAllData(int16_t *Data){
 		else if(state == 1){
 			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+5, 1, accelbuffer+5, 1);
 			state = 0;
-		
+		  
+			Data[0] = ((int16_t) ((uint16_t) accelbuffer[0] << 8) + accelbuffer[1]);
+			Data[1] = ((int16_t) ((uint16_t) accelbuffer[2] << 8) + accelbuffer[3]);
 			Data[2] = ((int16_t) ((uint16_t) accelbuffer[4] << 8) + accelbuffer[5]);
 		}
 	 #else
 		if(state == 0){
-			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H, 1, accelbuffer, 1);
-			state = 1;
-		}
-		else if(state == 1){
-			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+1, 1, accelbuffer+1, 1);
-			state = 2;
-		}
-		else if(state == 2){
+//			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H, 1, accelbuffer, 1);
+//			state = 1;
+//		}
+//		else if(state == 1){
+//			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+1, 1, accelbuffer+1, 1);
+//			state = 2;
+//		}
+//		else if(state == 2){
 			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+2, 1, accelbuffer+2, 1);
 			state = 3;
 		}
@@ -276,43 +279,43 @@ uint8_t MPU6050_GetAllData(int16_t *Data){
 		}
 		else if(state == 5){
 			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+5, 1, accelbuffer+5, 1);
-			state = 8;
-		}
-		// gyro
-		else if(state == 8){
-			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+8, 1, accelbuffer+8, 1);
-			state = 9;
-		}
-		else if(state == 9){
-			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+9, 1, accelbuffer+9, 1);
-			state = 10;
-		}
-		else if(state == 10){
-			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+10, 1, accelbuffer+10, 1);
-			state = 11;
-		}
-		else if(state == 11){
-			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+11, 1, accelbuffer+11, 1);
-			state = 12;
-		}
-		else if(state == 12){
-			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+12, 1, accelbuffer+12, 1);
-			state = 13;
-		}		
-		else if(state == 13){
-			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+13, 1, accelbuffer+13, 1);
 			state = 0;
+//		}
+		// gyro
+//		else if(state == 8){
+//			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+8, 1, accelbuffer+8, 1);
+//			state = 9;
+//		}
+//		else if(state == 9){
+//			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+9, 1, accelbuffer+9, 1);
+//			state = 10;
+//		}
+//		else if(state == 10){
+//			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+10, 1, accelbuffer+10, 1);
+//			state = 11;
+//		}
+//		else if(state == 11){
+//			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+11, 1, accelbuffer+11, 1);
+//			state = 12;
+//		}
+//		else if(state == 12){
+//			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+12, 1, accelbuffer+12, 1);
+//			state = 13;
+//		}		
+//		else if(state == 13){
+//			HAL_I2C_Mem_Read_IT(&hi2c,MPU6050_ADDR, MPU6050_RA_ACCEL_XOUT_H+13, 1, accelbuffer+13, 1);
+//			state = 0;
 			
-			for (i = 0; i< 3; i++)// accel
+			for (i = 1; i< 3; i++)// accel
 				Data[i] = ((int16_t) ((uint16_t) accelbuffer[2 * i] << 8) + accelbuffer[2 * i + 1]);
 	
-			for (i = 4; i < 7; i++)// gyro
-				Data[i] = ((int16_t) ((uint16_t) accelbuffer[2 * i] << 8) + accelbuffer[2 * i + 1]);
-		
+//			for (i = 4; i < 7; i++)// gyro
+//				Data[i] = ((int16_t) ((uint16_t) accelbuffer[2 * i] << 8) + accelbuffer[2 * i + 1]);
+}		
 		}
 		#endif 
 		return state;
- } 
+// } 
 }
 
 //void MPU6050_Init(void){
